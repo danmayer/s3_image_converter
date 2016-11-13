@@ -45,7 +45,11 @@
 )
 
 (defn read-from-s3 [cred bucket image-path]
-  (println (slurp (:content (get-object cred bucket image-path))))
+  (let [local-path (string/join "/" ["/tmp", image-path])]
+     (clojure.java.io/make-parents local-path)
+     (spit local-path (slurp (:content (s3/get-object cred bucket image-path))))
+     local-path
+  )
 )
 
 (defn -main[]
