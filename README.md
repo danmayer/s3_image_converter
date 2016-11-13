@@ -1,10 +1,12 @@
 # clojure_image_mapper
 
-A Clojure library designed to ... well, that part is up to you.
+A Clojure library designed to grab all images in S3 bucket and apply a transformation to them.
 
 ## Usage
 
-FIXME
+Make sure you have your S3 credentials in `~/.aws/credentials`
+
+`lein run`
 
 ## License
 

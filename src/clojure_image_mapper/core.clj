@@ -8,6 +8,7 @@
             )
 )
 
+;;todo move to ~/.aws... needs file expansion
 (def aws-creds (slurp "/Users/danmayer/.aws/credentials"))
 
 (def aws-access-key-id
@@ -52,6 +53,8 @@
   )
 )
 
+;;add method to clean up temp files
+
 (defn -main[]
   (let [ch1 (async/chan 500)
        ch2 (async/chan 500)
@@ -85,6 +88,7 @@
       ) ch1
     )
 
+    ;;todo pass in bucketname
     (doseq [path (->>
                  (entry-list cred "offgridelectricdev")
                  (filtered-image-paths))]
