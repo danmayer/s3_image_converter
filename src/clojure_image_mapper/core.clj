@@ -28,10 +28,10 @@
   (println image-path) 
   (let [converted-path (string/replace image-path #"\.jpg" ".webp")]
      (println converted-path)
-     (with-image "/path/to/image.jpg"
+     (with-image image-path
             (resize :width 1000)
             (rotate 90)
-            (util/save :quality 0.85))
+            (util/save converted-path :quality 0.85))
      converted-path
   )
 )
@@ -42,6 +42,10 @@
      (println converted-path)
      converted-path
   )
+)
+
+(defn read-from-s3 [cred bucket image-path]
+  (println (slurp (:content (get-object cred bucket image-path))))
 )
 
 (defn -main[]
@@ -65,8 +69,14 @@
 ;;      ) ch1
 ;;    )
 
+;;    (async/pipeline-async 8 ch2 (fn [path c]
+;;        (async/>!! c (convert-image cred path "batman"))
+;;        (async/close! c)
+;;      ) ch1
+;;    )
+
     (async/pipeline-async 8 ch2 (fn [path c]
-        (async/>!! c (convert-image cred path "batman"))
+        (async/>!! c (read-from-s3 cred "offgridelectricdev" path))
         (async/close! c)
       ) ch1
     )
