@@ -29,7 +29,7 @@
   (let [converted-path (string/replace image-path #"\.jpg" ".webp")]
      (println converted-path)
      (with-image image-path
-            (resize :width 1000)
+            (resize :width 100)
             (rotate 90)
             (util/save converted-path :quality 0.85))
      converted-path
