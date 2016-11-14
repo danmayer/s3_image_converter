@@ -5,8 +5,7 @@
             [clojure.string :as string]
             [fivetonine.collage.util :as util]
             [fivetonine.collage.core :refer :all]
-            )
-)
+            [clojure.java.io :as io]))
 
 ;;todo move to ~/.aws... needs file expansion
 (def aws-creds (slurp "/Users/danmayer/.aws/credentials"))
@@ -47,11 +46,11 @@
 
 (defn read-from-s3 [cred bucket image-path]
   (let [local-path (string/join "/" ["/tmp", image-path])]
-     (clojure.java.io/make-parents local-path)
-     (spit local-path (slurp (:content (s3/get-object cred bucket image-path))))
-     local-path
-  )
-)
+    (clojure.java.io/make-parents local-path)
+    (io/copy
+     (io/input-stream (:content (s3/get-object cred bucket image-path)))
+     (io/output-stream local-path))))
+    local-path))
 
 ;;add method to clean up temp files
 
