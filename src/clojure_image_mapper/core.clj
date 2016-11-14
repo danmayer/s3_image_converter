@@ -49,7 +49,7 @@
     (clojure.java.io/make-parents local-path)
     (io/copy
      (io/input-stream (:content (s3/get-object cred bucket image-path)))
-     (io/output-stream local-path))))
+     (io/output-stream local-path))
     local-path))
 
 ;;add method to clean up temp files
