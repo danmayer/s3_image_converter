@@ -25,7 +25,7 @@
 (defn filtered-image-paths [entry-list] (filter #(re-find #"\.jpg" %) entry-list))
 
 (defn convert-image [image-path]
-  (println image-path) 
+  (println image-path)
   (let [converted-path (string/replace image-path #"\.jpg" ".webp")]
      (println converted-path)
      (with-image image-path
@@ -47,8 +47,9 @@
 (defn read-from-s3 [cred bucket image-path]
   (let [local-path (string/join "/" ["/tmp", image-path])]
     (clojure.java.io/make-parents local-path)
+    (println (class (:content (s3/get-object cred bucket image-path))))
     (io/copy
-     (io/input-stream (:content (s3/get-object cred bucket image-path)))
+     (:content (s3/get-object cred bucket image-path))
      (io/output-stream local-path))
     local-path))
 
@@ -66,7 +67,7 @@
            (recur)
          )
        )
-       (async/close! exitchan) 
+       (async/close! exitchan)
     )
 
 ;;    (async/pipeline-async 8 ch2 (fn [path c]
