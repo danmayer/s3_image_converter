@@ -58,15 +58,12 @@
 )
 
 (defn read-from-s3 [cred bucket image-path]
-  (let [local-path (string/join "/" ["/tmp", image-path])
-        _ (clojure.java.io/make-parents local-path)
-        in-file (:content (s3/get-object cred bucket image-path))
-        out-file (io/output-stream local-path)]
-    (println local-path)
-
-    (io/copy in-file out-file)
-    (.close in-file)
-    (.close out-file)
+  (let [local-path (string/join "/" ["/tmp", image-path])]
+    (clojure.java.io/make-parents local-path)
+    (with-open [in-file (:content (s3/get-object cred bucket image-path))
+                 out-file (io/output-stream local-path)]
+      (println local-path)
+      (io/copy in-file out-file))
     [image-path local-path]))
 
 ;;add method to clean up temp files
