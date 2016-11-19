@@ -41,7 +41,7 @@
     (println converted-path)
     (println "************************")
     (s3/put-object cred bucket converted-path (io/file local-path)
-                :content-type "image/jpg")
+                {:content-type "image/jpg"})
     converted-path
   )
 )
@@ -58,12 +58,15 @@
 )
 
 (defn read-from-s3 [cred bucket image-path]
-  (let [local-path (string/join "/" ["/tmp", image-path])]
+  (let [local-path (string/join "/" ["/tmp", image-path])
+        _ (clojure.java.io/make-parents local-path)
+        in-file (:content (s3/get-object cred bucket image-path))
+        out-file (io/output-stream local-path)]
     (println local-path)
-    (clojure.java.io/make-parents local-path)
-    (io/copy
-     (:content (s3/get-object cred bucket image-path))
-     (io/output-stream local-path))
+
+    (io/copy in-file out-file)
+    (.close in-file)
+    (.close out-file)
     [image-path local-path]))
 
 ;;add method to clean up temp files
@@ -85,11 +88,11 @@
        (async/close! exitchan)
     )
 
-   (async/pipeline-async 8 ch4 (fn [[image-path local-path] c]
-       (async/>!! c (write-to-s3 cred bucket-name image-path local-path))
-       (async/close! c)
-     ) ch3
-   )
+    (async/pipeline-async 8 ch2 (fn [path c]
+        (async/>!! c (read-from-s3 cred bucket-name path))
+        (async/close! c)
+      ) ch1
+    )
 
     (async/pipeline-async 8 ch3 (fn [[image-path local-path] c]
        (async/>!! c (convert-image image-path local-path))
@@ -97,10 +100,10 @@
      ) ch2
     )
 
-    (async/pipeline-async 8 ch2 (fn [path c]
-        (async/>!! c (read-from-s3 cred bucket-name path))
-        (async/close! c)
-      ) ch1
+   (async/pipeline-async 8 ch4 (fn [[image-path local-path] c]
+       (async/>!! c (write-to-s3 cred bucket-name image-path local-path))
+       (async/close! c)
+     ) ch3
     )
 
     (doseq [path (->>
