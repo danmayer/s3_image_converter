@@ -13,20 +13,22 @@
     (string/replace-first s "~" (System/getProperty "user.home"))
     s))
 
-(def aws-creds (slurp (expand-home "~/.aws/credentials")))
+(defn aws-creds []
+  (slurp (expand-home "~/.aws/credentials")))
 
 ;;todo pass in bucketname
 (def bucket-name "offgridelectricdev")
 
-(def aws-access-key-id
-  (nth (re-find #"(?m)^aws_access_key_id.*=\s(.*)", aws-creds) 1)
+(defn aws-access-key-id []
+  (nth (re-find #"(?m)^aws_access_key_id.*=\s(.*)", (aws-creds)) 1)
 )
 
-(def aws-secret-access-key
-  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(.*)", aws-creds) 1)
+(defn aws-secret-access-key []
+  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(.*)", (aws-creds)) 1)
 )
 
-(def cred {:access-key aws-access-key-id, :secret-key aws-secret-access-key})
+(defn cred []
+  {:access-key (aws-access-key-id) :secret-key (aws-secret-access-key)})
 
 (defn entry-list [cred, bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
 
@@ -73,7 +75,8 @@
        ch2 (async/chan 8)
        ch3 (async/chan 8)
        ch4 (async/chan 8)
-       exitchan (async/chan)]
+        exitchan (async/chan)
+        cred (cred)]
 
     (async/thread
        (loop[]
