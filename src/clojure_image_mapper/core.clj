@@ -19,16 +19,17 @@
 ;;todo pass in bucketname
 (def bucket-name "offgridelectricdev")
 
-(defn aws-access-key-id []
-  (nth (re-find #"(?m)^aws_access_key_id.*=\s(.*)", (aws-creds)) 1)
+(defn aws-access-key-id [cred-str]
+  (nth (re-find #"(?m)^aws_access_key_id.*=\s(\S+)", cred-str) 1)
 )
 
-(defn aws-secret-access-key []
-  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(.*)", (aws-creds)) 1)
+(defn aws-secret-access-key [cred-str]
+  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(\S+)", cred-str) 1)
 )
 
-(defn cred []
-  {:access-key (aws-access-key-id) :secret-key (aws-secret-access-key)})
+(defn cred [creds-str]
+  {:access-key (aws-access-key-id creds-str)
+   :secret-key (aws-secret-access-key creds-str)})
 
 (defn entry-list [cred, bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
 
@@ -76,7 +77,7 @@
        ch3 (async/chan 8)
        ch4 (async/chan 8)
         exitchan (async/chan)
-        cred (cred)]
+        cred (cred (aws-creds))]
 
     (async/thread
        (loop[]
