@@ -6,7 +6,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :jvm-opts ["-Djava.library.path=native/"]
   ;;:jvm-opts [~(str "-Djava.library.path=native/:" (System/getenv "LD_LIBRARY_PATH"))]
-  :resource-paths ["resources" "resources/webp-imageio.jar"]
+  :resource-paths ["resources" "resources/webp-imageio-0.5.1-SNAPSHOT.jar"]
   ;;:java-source-paths ["src/fivetonine/collage/java"]
   :dependencies [[org.clojure/clojure "1.8.0"]
                  ;; avoid warning about version ranges

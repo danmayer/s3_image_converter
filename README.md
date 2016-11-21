@@ -17,9 +17,12 @@ Make sure you have your S3 credentials in `~/.aws/credentials`
 The macOS native library is included in the repo, but if we need to rebuild, here arethe steps I took (on macOS):
 
 ```
-brew install hg
+brew install hg gradle
 hg clone https://bitbucket.org/luciad/webp-imageio
 cd webp-imageio
+gradle build -x test
+ cp ./build/libs/webp-imageio-<VERSION>-SNAPSHOT.jar <path-to-this-project>/resources
+cp target/
 mkdir build
 cmake ..
 cmake --build .

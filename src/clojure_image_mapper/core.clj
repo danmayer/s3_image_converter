@@ -19,7 +19,7 @@
 
   ;; this throws an exception
   (with-image "IMG_3635.jpg"
-    (util/save "IMG_3635-a.webp"))
+    (util/save "IMG_3635-a.webp" :quality 0.8))
 
   ;; gives error, but this should be a smaller repro for the error above
   (.getDefaultWriteParam (first (iterator-seq (ImageIO/getImageWritersByFormatName "webp"))))
