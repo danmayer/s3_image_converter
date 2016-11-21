@@ -5,8 +5,29 @@
             [clojure.string :as string]
             [fivetonine.collage.util :as util]
             [fivetonine.collage.core :refer :all]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io])
+  ;; Temporary so I can try to figure out webp support
+  (:import
+    javax.imageio.ImageIO
+    )
+  )
 
+
+(comment
+  ;; this includes webp now, so I think resources/webp-imageio.jar is being found
+  (into [] (ImageIO/getReaderFormatNames))
+
+  ;; this throws an exception
+  (with-image "IMG_3635.jpg"
+    (util/save "IMG_3635-a.webp"))
+
+  ;; gives error, but this should be a smaller repro for the error above
+  (.getDefaultWriteParam (first (iterator-seq (ImageIO/getImageWritersByFormatName "webp"))))
+
+  ;; this shows that 'native' is the library path, which I think should
+  ;; be enough to include native/libwebp-imageio.dylib, but it's still not working
+  (. System getProperty "java.library.path")
+  )
 
 (defn expand-home [s]
   (if (string/starts-with? s "~")
