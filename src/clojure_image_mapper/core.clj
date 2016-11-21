@@ -30,24 +30,27 @@
   )
 
 (defn expand-home [s]
-  (if (.startsWith s "~")
+  (if (string/starts-with? s "~")
     (string/replace-first s "~" (System/getProperty "user.home"))
     s))
 
-(def aws-creds (slurp (expand-home "~/.aws/credentials")))
+(defn aws-creds []
+  (slurp (expand-home "~/.aws/credentials")))
 
 ;;todo pass in bucketname
 (def bucket-name "offgridelectricdev")
 
-(def aws-access-key-id
-  (nth (re-find #"(?m)^aws_access_key_id.*=\s(.*)", aws-creds) 1)
+(defn aws-access-key-id [cred-str]
+  (nth (re-find #"(?m)^aws_access_key_id.*=\s(\S+)", cred-str) 1)
 )
 
-(def aws-secret-access-key
-  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(.*)", aws-creds) 1)
+(defn aws-secret-access-key [cred-str]
+  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(\S+)", cred-str) 1)
 )
 
-(def cred {:access-key aws-access-key-id, :secret-key aws-secret-access-key})
+(defn cred [creds-str]
+  {:access-key (aws-access-key-id creds-str)
+   :secret-key (aws-secret-access-key creds-str)})
 
 (defn entry-list [cred, bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
 
@@ -79,15 +82,12 @@
 )
 
 (defn read-from-s3 [cred bucket image-path]
-  (let [local-path (string/join "/" ["/tmp", image-path])
-        _ (clojure.java.io/make-parents local-path)
-        in-file (:content (s3/get-object cred bucket image-path))
-        out-file (io/output-stream local-path)]
-    (println local-path)
-
-    (io/copy in-file out-file)
-    (.close in-file)
-    (.close out-file)
+  (let [local-path (string/join "/" ["/tmp", image-path])]
+    (clojure.java.io/make-parents local-path)
+    (with-open [in-file (:content (s3/get-object cred bucket image-path))
+                 out-file (io/output-stream local-path)]
+      (println local-path)
+      (io/copy in-file out-file))
     [image-path local-path]))
 
 ;;add method to clean up temp files
@@ -97,7 +97,8 @@
        ch2 (async/chan 8)
        ch3 (async/chan 8)
        ch4 (async/chan 8)
-       exitchan (async/chan)]
+        exitchan (async/chan)
+        cred (cred (aws-creds))]
 
     (async/thread
        (loop[]

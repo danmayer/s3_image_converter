@@ -9,6 +9,8 @@
   :resource-paths ["resources" "resources/webp-imageio.jar"]
   ;;:java-source-paths ["src/fivetonine/collage/java"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [clj-aws-s3 "0.3.10"]
+                 ;; avoid warning about version ranges
+                 [clj-aws-s3 "0.3.10" :exclusions [commons-codec joda-time]]
+                 [joda-time "2.2"]
                  [org.clojure/core.async "0.2.395"]
                  [fivetonine/collage "0.2.1"]])
