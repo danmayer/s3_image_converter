@@ -7,6 +7,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  ;; avoid warning about version ranges
                  [clj-aws-s3 "0.3.10" :exclusions [commons-codec joda-time]]
+                 [commons-codec "1.6"]
                  [joda-time "2.2"]
                  [org.clojure/core.async "0.2.395"]
                  [fivetonine/collage "0.2.1" ]])
