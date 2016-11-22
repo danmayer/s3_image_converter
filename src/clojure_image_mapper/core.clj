@@ -149,13 +149,7 @@
       (.write nil iioimage write-param)
       (.dispose))
     (.close outstream)
-    ;;(.close outfile)
     path))
-
-(comment
-  (with-image "IMG_3635.jpg"
-    (save_webp "IMG_3635-b.webp"))
-  )
 
 (defn -main[]
   (let [ch1 (async/chan 8)
