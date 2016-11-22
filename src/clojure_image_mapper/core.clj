@@ -18,8 +18,12 @@
   (into [] (ImageIO/getReaderFormatNames))
 
   ;; this throws an exception
+
   (with-image "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.jpg"
     (util/save "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.webp"))
+
+  (with-image "IMG_3635.jpg"
+    (util/save "IMG_3635-a.webp" :quality 0.8))
 
   ;; gives error, but this should be a smaller repro for the error above
   (.getDefaultWriteParam (first (iterator-seq (ImageIO/getImageWritersByFormatName "webp"))))
