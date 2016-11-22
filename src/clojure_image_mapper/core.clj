@@ -30,9 +30,6 @@
   (with-image "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.jpg"
     (util/save "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.webp"))
 
-  (with-image "IMG_3635.jpg"
-    (util/save "IMG_3635-a.webp" :quality 0.8))
-
   ;; gives error, but this should be a smaller repro for the error above
   (.getDefaultWriteParam (first (iterator-seq (ImageIO/getImageWritersByFormatName "webp"))))
 
@@ -134,7 +131,8 @@
         iioimage (IIOImage. image nil nil)
         outstream (ImageIO/createImageOutputStream outfile)]
     (doto write-param
-      (.setCompressionType "Lossless"))
+      (.setCompressionType "Lossless")
+      (.setCompressionMode ImageWriteParam/MODE_EXPLICIT))
     (when (.canWriteProgressive write-param)
       (let [mode-map {true  ImageWriteParam/MODE_DEFAULT
                       false ImageWriteParam/MODE_DISABLED}
@@ -148,7 +146,13 @@
       (.write nil iioimage write-param)
       (.dispose))
     (.close outstream)
+    ;;(.close outfile)
     path))
+
+(comment
+  (with-image "IMG_3635.jpg"
+    (save_webp "IMG_3635-b.webp"))
+  )
 
 (defn -main[]
   (let [ch1 (async/chan 8)
