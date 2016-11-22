@@ -47,6 +47,9 @@
   (slurp (expand-home "~/.aws/credentials")))
 
 ;;todo pass in bucketname
+;; (Use https://github.com/weavejester/environ
+;;  and add instructions for adding .lein-env file that
+;;  is ignored by .git)
 (def bucket-name "offgridelectricdev")
 
 (defn aws-access-key-id [cred-str]
