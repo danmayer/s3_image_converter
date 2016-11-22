@@ -20,24 +20,6 @@
            fivetonine.collage.Frame)
   )
 
-
-(comment
-  ;; this includes webp now, so I think resources/webp-imageio.jar is being found
-  (into [] (ImageIO/getReaderFormatNames))
-
-  ;; this throws an exception
-
-  (with-image "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.jpg"
-    (util/save "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.webp"))
-
-  ;; gives error, but this should be a smaller repro for the error above
-  (.getDefaultWriteParam (first (iterator-seq (ImageIO/getImageWritersByFormatName "webp"))))
-
-  ;; this shows that 'native' is the library path, which I think should
-  ;; be enough to include native/libwebp-imageio.dylib, but it's still not working
-  (. System getProperty "java.library.path")
-  )
-
 (defn expand-home [s]
   (if (string/starts-with? s "~")
     (string/replace-first s "~" (System/getProperty "user.home"))
@@ -104,31 +86,23 @@
 
 ;;add method to clean up temp files
 
-;; attemping to overrie
 
-(declare parse-extension)
 
-(defn parse-extension
-  "Parses the image extension from the path."
-  [path]
-  (last (clojure.string/split path #"\.")))
-
+;; add function that works with new webp API
 (defn save_webp
-  "Store an image on disk.
+  "Store a webp image on disk. Hardcoded for lossless quality
   Accepts optional keyword arguments.
-  `:quality` - decimal, between 0.0 and 1.0. Defaults to 0.8.
   `:progressive` - boolean, `true` turns progressive saving on, `false`
   turns it off. Defaults to the default value in the ImageIO API -
   `ImageWriteParam/MODE_COPY_FROM_METADATA`. See
   [Java docs](http://docs.oracle.com/javase/7/docs/api/javax/imageio/ImageWriteParam.html).
   Examples:
-    (save image \"/path/to/new/image.jpg\" :quality 1.0)
-    (save image \"/path/to/new/image/jpg\" :progressive false)
+    (save_webp image \"/path/to/new/image/example.webp\" :progressive false)
   Returns the path to the saved image when saved successfully."
   [^BufferedImage image path & rest]
   (let [opts (apply hash-map rest)
         outfile (file path)
-        ext (parse-extension path)
+        ext (util/parse-extension path)
         ^ImageWriter writer (.next (ImageIO/getImageWritersByFormatName ext))
         ^ImageWriteParam write-param (.getDefaultWriteParam writer)
         iioimage (IIOImage. image nil nil)
@@ -159,12 +133,10 @@
         exitchan (async/chan)
         cred (cred (aws-creds))]
 
-  (println (into [] (ImageIO/getReaderFormatNames)))
 
-
-    ;; this throws an exception
-    (with-image "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.jpg"
-      (save_webp "/tmp/agent_profiles/1000/house_images/device-3ae02e86cdab49eb0f42a7ca561795e6.webp" :quality 0.8))
+    ;; Working example
+    (with-image "./example.jpg"
+      (save_webp "./example.webp" :quality 0.9))
 
     (System/exit 0)
 
