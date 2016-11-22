@@ -28,76 +28,6 @@
 (defn aws-creds []
   (slurp (expand-home "~/.aws/credentials")))
 
-;;todo pass in bucketname
-;; (Use https://github.com/weavejester/environ
-;;  and add instructions for adding .lein-env file that
-;;  is ignored by .git)
-(def bucket-name "offgridelectricdev")
-
-(defn aws-access-key-id [cred-str]
-  (nth (re-find #"(?m)^aws_access_key_id.*=\s(\S+)", cred-str) 1)
-)
-
-(defn aws-secret-access-key [cred-str]
-  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(\S+)", cred-str) 1)
-)
-
-(defn cred [creds-str]
-  {:access-key (aws-access-key-id creds-str)
-   :secret-key (aws-secret-access-key creds-str)})
-
-(defn entry-list [cred, bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
-
-(defn filtered-image-paths [entry-list]
-  (remove #(re-find #"thumb" %)
-    (filter #(re-find #"\.jpg" %) entry-list))
-  )
-
-(defn removal-image-paths [entry-list]
-  (filter #(re-find #"\_dan_test.jpg" %) entry-list))
-
-(defn write-to-s3 [cred bucket image-path local-path]
-  (let [converted-path (string/replace image-path #"\.jpg" "_dan_test.jpg")]
-    (println "************************")
-    (println converted-path)
-    (println "************************")
-    (s3/put-object cred bucket converted-path (io/file local-path)
-                {:content-type "image/jpg"})
-    converted-path
-  )
-)
-
-(defn convert-image [image-path local-path]
-  (let [converted-path (string/replace local-path #"\.jpg" "_dan_test.jpg")]
-     (println converted-path)
-     (with-image local-path
-            (resize :width 100)
-            (rotate 90)
-            (util/save converted-path :quality 0.85))
-     [image-path converted-path]
-  )
-)
-
-(defn read-from-s3 [cred bucket image-path]
-  (let [local-path (string/join "/" ["/tmp", image-path])]
-    (clojure.java.io/make-parents local-path)
-    (with-open [in-file (:content (s3/get-object cred bucket image-path))
-                 out-file (io/output-stream local-path)]
-      (println local-path)
-      (io/copy in-file out-file))
-    [image-path local-path]))
-
-;;add method to clean up temp files
-
-
-(defn remove-from-s3
-  "this removes a file from S3"
-  [cred bucket image-path]
-  (println image-path)
-  (s3/delete-object cred bucket image-path)
-  [image-path])
-
-
 ;; add function that works with new webp API
 (defn save_webp
   "Store a webp image on disk. Hardcoded for lossless quality
@@ -135,6 +65,73 @@
     (.close outstream)
     path))
 
+;;todo pass in bucketname
+;; (Use https://github.com/weavejester/environ
+;;  and add instructions for adding .lein-env file that
+;;  is ignored by .git)
+(def bucket-name "offgridelectricdev")
+
+(defn aws-access-key-id [cred-str]
+  (nth (re-find #"(?m)^aws_access_key_id.*=\s(\S+)", cred-str) 1)
+)
+
+(defn aws-secret-access-key [cred-str]
+  (nth (re-find #"(?m)^aws_secret_access_key.*=\s(\S+)", cred-str) 1)
+)
+
+(defn cred [creds-str]
+  {:access-key (aws-access-key-id creds-str)
+   :secret-key (aws-secret-access-key creds-str)})
+
+(defn entry-list [cred, bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
+
+(defn filtered-image-paths [entry-list]
+  ;;(remove #(re-find #"thumb" %)
+    (filter #(re-find #"\.jpg" %) entry-list)
+  ;;)
+  )
+
+(defn removal-image-paths [entry-list]
+  (filter #(re-find #"\_dan_test.jpg" %) entry-list))
+
+(defn write-to-s3 [cred bucket image-path local-path]
+  (let [converted-path (string/replace image-path #"\.jpg" ".webp")]
+    (println converted-path)
+    (s3/put-object cred bucket converted-path (io/file local-path)
+                {:content-type "image/jpg"})
+    converted-path
+  )
+)
+
+(defn convert-image [image-path local-path]
+  (let [converted-path (string/replace local-path #"\.jpg" ".webp")]
+    ;;(println converted-path)
+    (with-image local-path
+      (save_webp converted-path :quality 0.9))
+    [image-path converted-path]
+  )
+)
+
+(defn read-from-s3 [cred bucket image-path]
+  (let [local-path (string/join "/" ["/tmp", image-path])]
+    (clojure.java.io/make-parents local-path)
+    (with-open [in-file (:content (s3/get-object cred bucket image-path))
+                 out-file (io/output-stream local-path)]
+      ;;(println local-path)
+      (io/copy in-file out-file))
+    [image-path local-path]))
+
+;;add method to clean up /tmp files
+
+
+(defn remove-from-s3
+  "this removes a file from S3"
+  [cred bucket image-path]
+  (println image-path)
+  (s3/delete-object cred bucket image-path)
+  [image-path])
+
+
 (def convert-example
   ;; Working example
   (with-image "./example.jpg"
@@ -150,7 +147,6 @@
         exitchan (async/chan)
         cred (cred (aws-creds))]
 
-    (println "ummmm converting images now!")
     (async/thread
        (loop[]
          (when-let [path (async/<!! ch4)]
@@ -186,7 +182,6 @@
 
 
     (async/<!! exitchan)
-    (println "done!!!!!!!")
   )
 )
 
@@ -220,11 +215,10 @@
 
 
     (async/<!! exitchan)
-    (println "done!!!!!!!")
   )
 )
 
 (defn -main[]
-  (clean-up)
-  ;;(convert-images)
-  )
+  ;;(clean-up)
+  (convert-images)
+  (println "done!!!!!!!"))
