@@ -53,6 +53,9 @@
     (filter #(re-find #"\.jpg" %) entry-list))
   )
 
+(defn removal-image-paths [entry-list]
+  (filter #(re-find #"\_dan_test.jpg" %) entry-list))
+
 (defn write-to-s3 [cred bucket image-path local-path]
   (let [converted-path (string/replace image-path #"\.jpg" "_dan_test.jpg")]
     (println "************************")
@@ -86,6 +89,13 @@
 
 ;;add method to clean up temp files
 
+
+(defn remove-from-s3
+  "this removes a file from S3"
+  [cred bucket image-path]
+  (println image-path)
+  (s3/delete-object cred bucket image-path)
+  [image-path])
 
 
 ;; add function that works with new webp API
@@ -125,7 +135,14 @@
     (.close outstream)
     path))
 
-(defn -main[]
+(def convert-example
+  ;; Working example
+  (with-image "./example.jpg"
+    (save_webp "./example.webp" :quality 0.9))
+  )
+
+
+(defn convert-images[]
   (let [ch1 (async/chan 8)
        ch2 (async/chan 8)
        ch3 (async/chan 8)
@@ -133,13 +150,7 @@
         exitchan (async/chan)
         cred (cred (aws-creds))]
 
-
-    ;; Working example
-    (with-image "./example.jpg"
-      (save_webp "./example.webp" :quality 0.9))
-
-    (System/exit 0)
-
+    (println "ummmm converting images now!")
     (async/thread
        (loop[]
          (when-let [path (async/<!! ch4)]
@@ -149,7 +160,6 @@
        )
        (async/close! exitchan)
     )
-
     (async/pipeline-async 8 ch2 (fn [path c]
         (async/>!! c (read-from-s3 cred bucket-name path))
         (async/close! c)
@@ -178,5 +188,43 @@
     (async/<!! exitchan)
     (println "done!!!!!!!")
   )
-
 )
+
+(defn clean-up[]
+    (let [ch1 (async/chan 8)
+       ch2 (async/chan 8)
+        exitchan (async/chan)
+        cred (cred (aws-creds))]
+
+    (async/thread
+       (loop[]
+         (when-let [path (async/<!! ch2)]
+           ;;(println path)
+           (recur)
+         )
+       )
+       (async/close! exitchan)
+    )
+
+    (async/pipeline-async 8 ch2 (fn [path c]
+        (async/>!! c (remove-from-s3 cred bucket-name path))
+        (async/close! c)
+      ) ch1
+    )
+
+    (doseq [path (->>
+                 (entry-list cred bucket-name)
+                 (removal-image-paths))]
+         (async/>!! ch1 path))
+    (async/close! ch1)
+
+
+    (async/<!! exitchan)
+    (println "done!!!!!!!")
+  )
+)
+
+(defn -main[]
+  (clean-up)
+  ;;(convert-images)
+  )
