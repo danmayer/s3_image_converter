@@ -8,6 +8,10 @@ Make sure you have your S3 credentials in `~/.aws/credentials`
 
 `lein run`
 
+with options:
+
+`BUCKETNAME=offgridelectricdev lein run [cleanup, convert]`
+
 ## Using webp-imageio
 
 The jar and macOS native library is included in the repo, if it is necessary to rebuild it, do the following:

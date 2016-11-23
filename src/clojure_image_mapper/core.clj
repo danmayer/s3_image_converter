@@ -6,7 +6,8 @@
             [fivetonine.collage.util :as util]
             [fivetonine.collage.core :refer :all]
             [clojure.java.io :as io]
-            [clojure.java.io :refer [as-file file]])
+            [clojure.java.io :refer [as-file file]]
+            [environ.core :refer [env]])
   ;; needed to override collage method
    (:import java.io.File
            java.net.URI
@@ -20,6 +21,9 @@
            fivetonine.collage.Frame)
   )
 
+(def bucket-name
+  (env :bucketname))
+
 (defn expand-home [s]
   (if (string/starts-with? s "~")
     (string/replace-first s "~" (System/getProperty "user.home"))
@@ -28,7 +32,7 @@
 (defn aws-creds []
   (slurp (expand-home "~/.aws/credentials")))
 
-;; add function that works with new webp API
+;; This function works with new webp API, perhaps fix collage and send a PR
 (defn save_webp
   "Store a webp image on disk. Hardcoded for lossless quality
   Accepts optional keyword arguments.
@@ -65,12 +69,6 @@
     (.close outstream)
     path))
 
-;;todo pass in bucketname
-;; (Use https://github.com/weavejester/environ
-;;  and add instructions for adding .lein-env file that
-;;  is ignored by .git)
-(def bucket-name "offgridelectricdev")
-
 (defn aws-access-key-id [cred-str]
   (nth (re-find #"(?m)^aws_access_key_id.*=\s(\S+)", cred-str) 1)
 )
@@ -83,7 +81,7 @@
   {:access-key (aws-access-key-id creds-str)
    :secret-key (aws-secret-access-key creds-str)})
 
-(defn entry-list [cred, bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
+(defn entry-list [cred bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
 
 (defn filtered-image-paths [entry-list]
   ;;(remove #(re-find #"thumb" %)
@@ -185,7 +183,7 @@
   )
 )
 
-(defn clean-up[]
+(defn clean-up[cleanup-pattern]
     (let [ch1 (async/chan 8)
        ch2 (async/chan 8)
         exitchan (async/chan)
@@ -218,7 +216,13 @@
   )
 )
 
-(defn -main[]
-  ;;(clean-up)
-  (convert-images)
-  (println "done!!!!!!!"))
+(defn -main[& args]
+  (let [all-args (apply str args)]
+    (when (string/includes? all-args "clean")
+      (clean-up "cleanup-pattern"))
+    (when (string/includes? all-args "convert")
+      (convert-images))
+    (when (empty? all-args)
+      println "you must pass in run option [clean, convert]"
+      (System/exit 0))
+  ))
