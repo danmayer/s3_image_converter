@@ -15,5 +15,6 @@
                  [joda-time "2.2"]
                  [org.clojure/core.async "0.2.395"]
                  [fivetonine/collage "0.2.1"]
-                 [environ "1.1.0"]]
+                 [environ "1.1.0"]
+                 [org.clojure/tools.cli "0.3.5"]]
   :plugins [[lein-environ "1.1.0"]])

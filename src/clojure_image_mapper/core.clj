@@ -7,7 +7,8 @@
             [fivetonine.collage.core :refer :all]
             [clojure.java.io :as io]
             [clojure.java.io :refer [as-file file]]
-            [environ.core :refer [env]])
+            [environ.core :refer [env]]
+            [clojure.tools.cli :refer [parse-opts]])
   ;; needed to override collage method
    (:import java.io.File
            java.net.URI
@@ -216,13 +217,25 @@
   )
 )
 
+(def cli-options
+  ;; An option with a required argument
+  [["-f" "--function FUNCTION" "which function clean, convert"
+    :default "none"]
+   ["-h" "--help"]])
+
 (defn -main[& args]
-  (let [all-args (apply str args)]
-    (when (string/includes? all-args "clean")
+  (let [opts (parse-opts args cli-options)]
+
+    (println opts)
+    (println (get-in opts [:options :function]))
+
+    (when (string/includes? (get-in opts [:options :function]) "clean")
+      (println "running cleanup...")
       (clean-up "cleanup-pattern"))
-    (when (string/includes? all-args "convert")
+    (when (string/includes? (get-in opts [:options :function]) "convert")
+      (println "running conversion...")
       (convert-images))
-    (when (empty? all-args)
-      println "you must pass in run option [clean, convert]"
+    (when (string/includes? (get-in opts [:options :function]) "none")
+      (println "you must pass in run option --function [clean, convert]")
       (System/exit 0))
-  ))
+    ))
