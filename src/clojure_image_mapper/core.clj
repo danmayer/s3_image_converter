@@ -119,7 +119,7 @@
 )
 
 (defn read-from-s3 [cred bucket image-path]
-  (let [local-path (string/join "/" ["/tmp", image-path])]
+  (let [local-path (string/join "/" ["/tmp/image_mapper/", image-path])]
     (clojure.java.io/make-parents local-path)
     (with-open [in-file (:content (s3/get-object cred bucket image-path))
                  out-file (io/output-stream local-path)]
@@ -187,8 +187,8 @@
          (async/>!! ch1 path))
     (async/close! ch1)
 
-
     (async/<!! exitchan)
+    (delete-recursively "/tmp/image_mapper/")
   )
 )
 
