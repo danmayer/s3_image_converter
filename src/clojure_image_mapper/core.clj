@@ -84,14 +84,12 @@
 
 (defn entry-list [cred bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
 
-(defn filtered-image-paths [entry-list]
-  ;;(remove #(re-find #"thumb" %)
-    (filter #(re-find #"\.jpg" %) entry-list)
-  ;;)
+(defn filtered-image-paths [matcher entry-list]
+    (filter #(re-find matcher %) entry-list)
   )
 
-(defn removal-image-paths [entry-list]
-  (filter #(re-find #"\_dan_test.jpg" %) entry-list))
+(defn removal-image-paths [matcher entry-list]
+  (filter #(re-find matcher %) entry-list))
 
 (defn write-to-s3 [cred bucket image-path local-path]
   (let [converted-path (string/replace image-path #"\.jpg" ".webp")]
@@ -130,15 +128,16 @@
   (s3/delete-object cred bucket image-path)
   [image-path])
 
+(defn delete-recursively [fname]
+  (let [func (fn [func f]
+               (when (.isDirectory f)
+                 (doseq [f2 (.listFiles f)]
+                   (func func f2)))
+               (clojure.java.io/delete-file f))]
+    (func func (clojure.java.io/file fname))))
 
-(def convert-example
-  ;; Working example
-  (with-image "./example.jpg"
-    (save_webp "./example.webp" :quality 0.9))
-  )
 
-
-(defn convert-images[]
+(defn convert-images[matcher]
   (let [ch1 (async/chan 8)
        ch2 (async/chan 8)
        ch3 (async/chan 8)
@@ -175,7 +174,7 @@
 
     (doseq [path (->>
                  (entry-list cred bucket-name)
-                 (filtered-image-paths))]
+                 (filtered-image-paths matcher))]
          (async/>!! ch1 path))
     (async/close! ch1)
 
@@ -208,7 +207,7 @@
 
     (doseq [path (->>
                  (entry-list cred bucket-name)
-                 (removal-image-paths))]
+                 (removal-image-paths cleanup-pattern))]
          (async/>!! ch1 path))
     (async/close! ch1)
 
@@ -217,25 +216,35 @@
   )
 )
 
+(defn convert-example
+  ;; Working example
+  (with-image "./example.jpg"
+    (save_webp "./example.webp" :quality 0.9))
+  )
+
 (def cli-options
   ;; An option with a required argument
   [["-f" "--function FUNCTION" "which function clean, convert"
     :default "none"]
+   ["-m" "--matcher REGEX" "filter to convert or clean"
+    :default "_test.jpg"]
    ["-h" "--help"]])
 
 (defn -main[& args]
   (let [opts (parse-opts args cli-options)]
 
     (println opts)
-    (println (get-in opts [:options :function]))
 
-    (when (string/includes? (get-in opts [:options :function]) "clean")
-      (println "running cleanup...")
-      (clean-up "cleanup-pattern"))
-    (when (string/includes? (get-in opts [:options :function]) "convert")
-      (println "running conversion...")
-      (convert-images))
-    (when (string/includes? (get-in opts [:options :function]) "none")
-      (println "you must pass in run option --function [clean, convert]")
-      (System/exit 0))
-    ))
+    (let [matcher (re-pattern (get-in opts [:options :matcher]))]
+
+      (when (string/includes? (get-in opts [:options :function]) "clean")
+        (println "running cleanup...")
+        (clean-up matcher))
+      (when (string/includes? (get-in opts [:options :function]) "convert")
+        (println "running conversion...")
+        ;; matcher = #"\.jpg"
+        (convert-images matcher))
+      (when (string/includes? (get-in opts [:options :function]) "none")
+        (println "you must pass in run option --function [clean, convert]")
+        (System/exit 0))
+    )))
