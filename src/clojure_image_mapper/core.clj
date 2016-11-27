@@ -22,6 +22,15 @@
            fivetonine.collage.Frame)
   )
 
+
+;; https://wyegelwel.github.io/Error-Handling-with-Clojure-Async/
+(Thread/setDefaultUncaughtExceptionHandler
+	(reify Thread$UncaughtExceptionHandler
+		(uncaughtException [_ thread throwable]
+      (println "caught exception in Async... Skipping")
+			(println (.getMessage throwable))
+			)))
+
 (def bucket-name
   (env :bucketname))
 
@@ -216,7 +225,7 @@
   )
 )
 
-(defn convert-example
+(defn convert-example[]
   ;; Working example
   (with-image "./example.jpg"
     (save_webp "./example.webp" :quality 0.9))

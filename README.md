@@ -36,7 +36,7 @@ cp src/main/c/* <path-to-this-project-repo>/native
 
 ## Todo
 
-* improved exception handling
+* temp folder cleanup
 * time based filter options
 * don't reconvert if output file exists
 * more efficient S3 filter query (via CLI opposed to in app)
