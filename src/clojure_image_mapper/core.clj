@@ -93,9 +93,14 @@
 
 (defn entry-list [cred bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
 
+(defn lazy-contains? [col key]
+  (some #{key} col))
+
+;;TODO refactor with Ben perhaps convert to a set to check existing
 (defn filtered-image-paths [matcher entry-list]
-    (filter #(re-find matcher %) entry-list)
-  )
+    (let [filtered-list (filter #(re-find matcher %) entry-list)]
+      (remove #(lazy-contains? entry-list (string/replace % #"\.jpg" ".webp")) filtered-list)
+    ))
 
 (defn removal-image-paths [matcher entry-list]
   (filter #(re-find matcher %) entry-list))
@@ -251,7 +256,6 @@
         (clean-up matcher))
       (when (string/includes? (get-in opts [:options :function]) "convert")
         (println "running conversion...")
-        ;; matcher = #"\.jpg"
         (convert-images matcher))
       (when (string/includes? (get-in opts [:options :function]) "none")
         (println "you must pass in run option --function [clean, convert]")

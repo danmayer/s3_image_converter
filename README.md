@@ -36,8 +36,8 @@ cp src/main/c/* <path-to-this-project-repo>/native
 
 ## Todo
 
+* exception handling prints out but still seems to halt execution
 * time based filter options
-* don't reconvert if output file exists
 * more efficient S3 filter query (via CLI opposed to in app)
 * don't write files work directly with IO-streams
   * https://github.com/karls/collage/issues/8
