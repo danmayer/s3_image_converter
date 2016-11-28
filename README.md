@@ -36,7 +36,9 @@ cp src/main/c/* <path-to-this-project-repo>/native
 
 ## Todo
 
-* exception handling prints out but still seems to halt execution
+* Exception Handling improvements with Ben
+  * previously output exception but halted
+  * try catch in methods works but should print which file failed and continue (or add to skipped_list)
 * time based filter options
 * more efficient S3 filter query (via CLI opposed to in app)
 * don't write files work directly with IO-streams

@@ -108,8 +108,10 @@
 (defn write-to-s3 [cred bucket image-path local-path]
   (let [converted-path (string/replace image-path #"\.jpg" ".webp")]
     (println converted-path)
-    (s3/put-object cred bucket converted-path (io/file local-path)
-                {:content-type "image/jpg"})
+    (try
+      (s3/put-object cred bucket converted-path (io/file local-path)
+                  {:content-type "image/jpg"})
+      (catch Exception e e))
     converted-path
   )
 )
@@ -117,8 +119,11 @@
 (defn convert-image [image-path local-path]
   (let [converted-path (string/replace local-path #"\.jpg" ".webp")]
     ;;(println converted-path)
-    (with-image local-path
-      (save_webp converted-path :quality 0.9))
+    ;; TODO go over exception handling with Ben
+    (try
+      (with-image local-path
+        (save_webp converted-path :quality 0.9))
+      (catch Exception e e))
     [image-path converted-path]
   )
 )
