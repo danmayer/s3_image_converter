@@ -28,7 +28,8 @@
 	(reify Thread$UncaughtExceptionHandler
 		(uncaughtException [_ thread throwable]
       (println "caught exception in Async... Skipping")
-			(println (.getMessage throwable))
+      (println (.getMessage throwable))
+			(println (map str (interpose "\n" (.getStackTrace throwable))))
 			)))
 
 (def bucket-name
@@ -91,7 +92,7 @@
   {:access-key (aws-access-key-id creds-str)
    :secret-key (aws-secret-access-key creds-str)})
 
-(defn entry-list [cred bucket] (map :key (get (s3/list-objects cred bucket) :objects)))
+(defn entry-list [cred bucket prefix] (map :key (get (s3/list-objects cred bucket {:prefix prefix}) :objects)))
 
 (defn lazy-contains? [col key]
   (some #{key} col))
@@ -99,25 +100,25 @@
 ;;TODO refactor with Ben perhaps convert to a set to check existing
 (defn filtered-image-paths [matcher entry-list]
     (let [filtered-list (filter #(re-find matcher %) entry-list)]
-      (remove #(lazy-contains? entry-list (string/replace % #"\.jpg" ".webp")) filtered-list)
+      (remove #(lazy-contains? entry-list (string/replace % matcher ".webp")) filtered-list)
     ))
 
 (defn removal-image-paths [matcher entry-list]
   (filter #(re-find matcher %) entry-list))
 
-(defn write-to-s3 [cred bucket image-path local-path]
-  (let [converted-path (string/replace image-path #"\.jpg" ".webp")]
+(defn write-to-s3 [cred bucket image-path local-path matcher]
+  (let [converted-path (string/replace image-path matcher ".webp")]
     (println converted-path)
     (try
       (s3/put-object cred bucket converted-path (io/file local-path)
-                  {:content-type "image/jpg"})
+                  {:content-type "image/webp"})
       (catch Exception e e))
     converted-path
   )
 )
 
-(defn convert-image [image-path local-path]
-  (let [converted-path (string/replace local-path #"\.jpg" ".webp")]
+(defn convert-image [image-path local-path matcher]
+  (let [converted-path (string/replace local-path matcher ".webp")]
     ;;(println converted-path)
     ;; TODO go over exception handling with Ben
     (try
@@ -156,7 +157,7 @@
     (func func (clojure.java.io/file fname))))
 
 
-(defn convert-images[matcher]
+(defn convert-images[matcher prefix]
   (let [ch1 (async/chan 8)
        ch2 (async/chan 8)
        ch3 (async/chan 8)
@@ -180,19 +181,19 @@
     )
 
     (async/pipeline-async 8 ch3 (fn [[image-path local-path] c]
-       (async/>!! c (convert-image image-path local-path))
+       (async/>!! c (convert-image image-path local-path matcher))
        (async/close! c)
      ) ch2
     )
 
    (async/pipeline-async 8 ch4 (fn [[image-path local-path] c]
-       (async/>!! c (write-to-s3 cred bucket-name image-path local-path))
+       (async/>!! c (write-to-s3 cred bucket-name image-path local-path matcher))
        (async/close! c)
      ) ch3
     )
 
     (doseq [path (->>
-                 (entry-list cred bucket-name)
+                 (entry-list cred bucket-name prefix)
                  (filtered-image-paths matcher))]
          (async/>!! ch1 path))
     (async/close! ch1)
@@ -236,9 +237,21 @@
 )
 
 (defn convert-example[]
-  ;; Working example
-  (with-image "./example.jpg"
-    (save_webp "./example.webp" :quality 0.9))
+  "a packaged exampe showing a JPG file to webp"
+  (with-image "./examples/example.jpg"
+    (save_webp "./examples/example.webp" :quality 0.9))
+  )
+
+(defn convert-png-example[]
+  "a packaged exampe showing a PNG file to webp"
+  (with-image "./examples/png_example.png"
+    (save_webp "./examples/png_example.webp"))
+  )
+
+(defn convert-png-jpg-example[]
+  "a packaged exampe showing a PNG file to jpg"
+  (with-image "./examples/png_example.png"
+    (util/save "./examples/png_example.jpg"))
   )
 
 (def cli-options
@@ -247,6 +260,8 @@
     :default "none"]
    ["-m" "--matcher REGEX" "filter to convert or clean"
     :default "_test.jpg"]
+   ["-p" "--prefix PREFIX" "filter to prefixed directories"
+    :default ""]
    ["-h" "--help"]])
 
 (defn -main[& args]
@@ -254,14 +269,15 @@
 
     (println opts)
 
-    (let [matcher (re-pattern (get-in opts [:options :matcher]))]
+    (let [matcher (re-pattern (get-in opts [:options :matcher]))
+          prefix (get-in opts [:options :prefix])]
 
       (when (string/includes? (get-in opts [:options :function]) "clean")
         (println "running cleanup...")
         (clean-up matcher))
       (when (string/includes? (get-in opts [:options :function]) "convert")
         (println "running conversion...")
-        (convert-images matcher))
+        (convert-images matcher prefix))
       (when (string/includes? (get-in opts [:options :function]) "none")
         (println "you must pass in run option --function [clean, convert]")
         (System/exit 0))
