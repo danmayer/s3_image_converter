@@ -13,7 +13,9 @@ with options:
 `BUCKETNAME=mybucket lein run [cleanup, convert]`
 
 clean: `BUCKETNAME=mybucket lein run --function clean --matcher _dan_test.jpg`
+
 convert: `BUCKETNAME=mybucket lein run --function convert --matcher \.jpg`
+
 convert pngs in directory: `BUCKETNAME=mybucket lein run --function convert --matcher \.png --prefix products`
 
 ## Using webp-imageio
