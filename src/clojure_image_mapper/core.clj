@@ -27,9 +27,10 @@
 (Thread/setDefaultUncaughtExceptionHandler
 	(reify Thread$UncaughtExceptionHandler
 		(uncaughtException [_ thread throwable]
-      (println "caught exception in Async... Skipping")
+      (println "caught exception in Async... Oops I should have handled this error, elsewhere!")
       (println (.getMessage throwable))
 			(println (map str (interpose "\n" (.getStackTrace throwable))))
+      (System/exit 1)
 			)))
 
 (def bucket-name
@@ -94,14 +95,28 @@
 
 (defn entry-list [cred bucket prefix] (map :key (get (s3/list-objects cred bucket {:prefix prefix}) :objects)))
 
-(defn lazy-contains? [col key]
-  (some #{key} col))
-
-;;TODO refactor with Ben perhaps convert to a set to check existing
 (defn filtered-image-paths [matcher entry-list]
-    (let [filtered-list (filter #(re-find matcher %) entry-list)]
-      (remove #(lazy-contains? entry-list (string/replace % matcher ".webp")) filtered-list)
+    (let [filtered-list (filter #(re-find matcher %) entry-list)
+          entry-set (set entry-list)]
+      (remove #(contains? entry-set (string/replace % matcher ".webp")) filtered-list)
     ))
+
+(defn entry-list-paging [ch1 cred bucket matcher prefix]
+  (loop [response (s3/list-objects cred bucket {:prefix prefix})
+         all-items []]
+    (let [items (map :key (get response :objects))
+          next-marker (get response :next-marker)
+          total-items (into all-items items)]
+      (println "next marker" next-marker (count total-items))
+      (doseq [path (filtered-image-paths matcher total-items)]
+          (async/>!! ch1 path))
+
+      (if next-marker
+        (do
+          (recur (s3/list-objects cred bucket {:prefix prefix, :marker next-marker}) total-items)
+        )
+        (async/close! ch1)
+        ))))
 
 (defn removal-image-paths [matcher entry-list]
   (filter #(re-find matcher %) entry-list))
@@ -112,7 +127,10 @@
     (try
       (s3/put-object cred bucket converted-path (io/file local-path)
                   {:content-type "image/webp"})
-      (catch Exception e e))
+    (catch Exception e
+        (println (.getMessage e))
+        (printf "write-to-s3: skipped file %s" image-path)
+      ))
     converted-path
   )
 )
@@ -120,26 +138,31 @@
 (defn convert-image [image-path local-path matcher]
   (let [converted-path (string/replace local-path matcher ".webp")]
     ;;(println converted-path)
-    ;; TODO go over exception handling with Ben
     (try
       (with-image local-path
         (save_webp converted-path :quality 0.9))
-      (catch Exception e e))
+    (catch Exception e
+        (println (.getMessage e))
+        (printf "convert-image: skipped file %s" image-path)
+      ))
     [image-path converted-path]
   )
 )
 
 (defn read-from-s3 [cred bucket image-path]
   (let [local-path (string/join "/" ["/tmp/image_mapper/", image-path])]
-    (clojure.java.io/make-parents local-path)
-    (with-open [in-file (:content (s3/get-object cred bucket image-path))
+    (try
+      (clojure.java.io/make-parents local-path)
+      (with-open [in-file (:content (s3/get-object cred bucket image-path))
                  out-file (io/output-stream local-path)]
-      ;;(println local-path)
-      (io/copy in-file out-file))
-    [image-path local-path]))
-
-;;add method to clean up /tmp files
-
+        ;;(println local-path)
+        (io/copy in-file out-file))
+      [image-path local-path]
+    (catch Exception e
+        (println (.getMessage e))
+        (printf "read-from-s3: skipped file %s" image-path)
+      ))
+    ))
 
 (defn remove-from-s3
   "this removes a file from S3"
@@ -192,11 +215,7 @@
      ) ch3
     )
 
-    (doseq [path (->>
-                 (entry-list cred bucket-name prefix)
-                 (filtered-image-paths matcher))]
-         (async/>!! ch1 path))
-    (async/close! ch1)
+    (entry-list-paging ch1 cred bucket-name matcher prefix)
 
     (async/<!! exitchan)
     (delete-recursively "/tmp/image_mapper/")

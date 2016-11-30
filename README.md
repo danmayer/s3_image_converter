@@ -37,10 +37,6 @@ cp src/main/c/* <path-to-this-project-repo>/native
 
 ## Todo
 
-* [how to page between markers](http://weavejester.github.io/clj-aws-s3/aws.sdk.s3.html#var-list-objects)
-* Exception Handling improvements with Ben
-  * previously output exception but halted
-  * try catch in methods works but should print which file failed and continue (or add to skipped_list)
 * time based filter options
 * more efficient S3 filter query (via CLI opposed to in app)
 * don't write files work directly with IO-streams
