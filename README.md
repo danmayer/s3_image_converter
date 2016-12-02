@@ -37,8 +37,35 @@ cmake --build .
 cp src/main/c/* <path-to-this-project-repo>/native
 ```
 
+```
+brew install hg gradle cmake maven
+hg clone https://bitbucket.org/luciad/webp-imageio
+cd webp-imageio
+hg up 085df339fb2f
+mkdir build
+cd build 
+cmake ..
+make --build .
+cd ..
+mvn -Dmaven.test.skip=true package
+cp target/webp-imageio-0.4.3-SNAPSHOT.jar ../clojure_image_mapper/resources
+cp build/src/main/c/libwebp-imageio.dylib ../clojure_image_mapper/native
+```
+
+## Running In Docker
+
+ * add your aws files to a gitignored directory
+   * copy from `~/.aws/` to `./deploy`
+ * `docker build -t clojure-image-mapper .`
+ * `docker run -it --rm --name running-image-mapper clojure-image-mapper`
+ 
+ To run with arguments and env variables:
+ 
+ `docker run -e BUCKETNAME=offgridelectric -it --rm --name running-image-mapper clojure-image-mapper lein run --function convert --matcher \.jpg`
+
 ## Todo
 
+* delete if exists: `java.io.IOException: Couldn't delete /tmp/image_mapper`
 * time based filter options
 * more efficient S3 filter query (via CLI opposed to in app)
 * don't write files work directly with IO-streams
