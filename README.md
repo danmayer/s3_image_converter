@@ -61,7 +61,7 @@ cp build/src/main/c/libwebp-imageio.dylib ../clojure_image_mapper/native
  
  To run with arguments and env variables:
  
- `docker run -e BUCKETNAME=offgridelectric -it --rm --name running-image-mapper clojure-image-mapper lein run --function convert --matcher \.jpg`
+ `docker run -e BUCKETNAME=mybucket -it --rm --name running-image-mapper clojure-image-mapper lein run --function convert --matcher \.jpg`
 
 ## Todo
 
