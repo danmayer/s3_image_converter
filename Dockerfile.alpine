@@ -3,69 +3,29 @@ FROM clojure:alpine
 # https://wiki.alpinelinux.org/wiki/How_to_get_regular_stuff_working#Compiling_:_a_few_notes_and_a_reminder
 RUN apk update && \
     apk upgrade && \
-    apk add git && \
+    apk add git  && \
     apk add mercurial && \
     apk add cmake && \
-    apk add alpine-sdk
-
-# https://github.com/pottava/docker-gradle/blob/master/versions/3/Dockerfile
-ENV GRADLE_VERSION=3.0
-
-RUN set -ex \
-      && apk --no-cache add --virtual build-dependencies curl unzip \
-      && apk --no-cache add bash libstdc++ \
-      && cd /usr/lib \
-      && curl -O --location --silent --show-error https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip \
-      && unzip -q gradle-${GRADLE_VERSION}-bin.zip \
-      && ln -s /usr/lib/gradle-${GRADLE_VERSION}/bin/gradle /usr/bin/ \
-      && rm -rf gradle-${GRADLE_VERSION}-bin.zip \
-          gradle-${GRADLE_VERSION}/bin/gradle.bat \
-          gradle-${GRADLE_VERSION}/getting-started.html \
-          gradle-${GRADLE_VERSION}/media \
-          /opt/jdk/*src.zip \
-      && apk del --purge build-dependencies
+    apk add gcc make libc-dev libgcc libstdc++ g++
 
 RUN mkdir /builds
 WORKDIR /builds
+RUN echo "clone"
 RUN hg clone https://bitbucket.org/luciad/webp-imageio
 WORKDIR /builds/webp-imageio
-RUN hg up 0.4.2
 RUN mkdir build
 WORKDIR /builds/webp-imageio/build
 RUN cmake ..
-RUN cmake --build . && echo `ls /builds/webp-imageio/build`
-
-WORKDIR /builds/webp-imageio
-RUN gradle build
+RUN cmake --build .
 
 RUN mkdir /root/.aws
 ADD deploy/config /root/.aws/config
 ADD deploy/credentials /root/.aws/credentials
 
 COPY . /usr/src/app
-
-# CURRENTLY CP fails
-RUN echo `ls ./build`
-RUN echo `ls ./build/src`
-RUN echo `ls ./`
-RUN echo `ls src/main/c/CMakeFiles/webp-imageio.dir/`
-
-#RUN cp ./build/libs/webp-imageio-* /usr/src/app/resources/
-#Step 25 : RUN echo `ls /usr/src/app/resources/`
-# ---> Running in bc0ab38b871e
-#webp-imageio-0.5.1-SNAPSHOT.jar webp-imageio.jar
-# [ 98%] Building C object src/main/c/CMakeFiles/webp-imageio.dir/webp-imageio.c.o
-# [100%] Linking C shared library libwebp-imageio.so
-# https://bitbucket.org/luciad/webp-imageio/issues/6/javalangunsatisfiedlinkerror-no-webp
-
-
-RUN cp ./src/main/c/* /usr/src/app/native
-
-RUN echo `ls /usr/src/app/resources/`
-RUN echo `ls /usr/src/app/native`
-# CMakeLists.txt com_luciad_imageio_webp_WebP.h com_luciad_imageio_webp_WebPReadParam.h com_luciad_imageio_webp_WebPWriteParam.h libwebp-imageio.dylib webp-imageio.c
-
 WORKDIR /usr/src/app
+
+RUN cp /builds/webp-imageio/build/src/main/c/libwebp-imageio.so /usr/src/app/native/
 
 RUN lein deps
 
