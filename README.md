@@ -53,6 +53,36 @@ cp src/main/c/* <path-to-this-project-repo>/native
 * `docker login`
 * `docker push danmayer/clojure-image-mapper`
 
+How to make your dockerfile wrap this one with your credentials and do something useful, like say run the converter every 5min in a cron. 
+
+
+```
+#~/my_project/depoy/image-cron
+PATH=/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+*/5 * * * * cd /usr/src/app && BUCKETNAME=my_bucker lein run --function convert --matcher \.jpg --prefix products >> /var/log/cron.log 2>&1
+```
+
+```
+#~/my_project/Dockerfile
+FROM danmayer/clojure-image-mapper:latest
+MAINTAINER Dan Mayer <dan.mayer@xyz.com>
+
+# add credentials
+ADD deploy/aws_credentials /root/.aws/credentials
+
+# Add crontab file in the cron directory
+ADD deploy/image-cron /var/spool/cron/crontabs/root
+
+# Give execution rights on the cron job
+RUN chmod 0644 /var/spool/cron/crontabs/root
+ 
+# Create the log file to be able to run tail
+RUN touch /var/log/cron.log
+ 
+# Run the command on container startup
+CMD crond -l 2 -f
+```
+
 ## Todo
 
 * oneoff script to remove all webp or fix public read on existing ones?
