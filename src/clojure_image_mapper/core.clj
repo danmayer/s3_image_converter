@@ -127,6 +127,7 @@
     (try
       (s3/put-object cred bucket converted-path (io/file local-path)
                   {:content-type "image/webp"})
+      (s3/update-object-acl cred bucket converted-path (s3/grant :all-users :read))
     (catch Exception e
         (println (.getMessage e))
         (printf "write-to-s3: skipped file %s" image-path)
@@ -172,12 +173,13 @@
   [image-path])
 
 (defn delete-recursively [fname]
-  (let [func (fn [func f]
-               (when (.isDirectory f)
-                 (doseq [f2 (.listFiles f)]
-                   (func func f2)))
-               (clojure.java.io/delete-file f))]
-    (func func (clojure.java.io/file fname))))
+  (when (.exists (clojure.java.io/as-file fname))
+    (let [func (fn [func f]
+                 (when (.isDirectory f)
+                   (doseq [f2 (.listFiles f)]
+                     (func func f2)))
+                 (clojure.java.io/delete-file f))]
+      (func func (clojure.java.io/file fname)))))
 
 
 (defn convert-images[matcher prefix]

@@ -55,9 +55,7 @@ cp src/main/c/* <path-to-this-project-repo>/native
 
 ## Todo
 
-* set to public read for the images, make optional param that defaults to one.
-* oneoff script to remove all webp or fix public read on existing ones
-* delete if exists: `java.io.IOException: Couldn't delete /tmp/image_mapper`
+* oneoff script to remove all webp or fix public read on existing ones?
 * time based filter options
 * more efficient S3 filter query (via CLI opposed to in app)
 * don't write files work directly with IO-streams
@@ -67,6 +65,7 @@ cp src/main/c/* <path-to-this-project-repo>/native
 * contribute patch back to collage to make WebP work again
   * https://github.com/karls/collage/blob/master/src/fivetonine/collage/util.clj#L35-L80
   * https://bitbucket.org/luciad/webp-imageio/src/fde3644e6aa610f6a8d97c3d982a7c3926324ecf/src/javase/java/com/luciad/imageio/webp/WebPWriteParam.java?at=default&fileviewer=file-view-default#WebPWriteParam.java-28 
+* keep a count of how many images you converted 
 
 ## License
 
