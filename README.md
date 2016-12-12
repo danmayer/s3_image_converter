@@ -1,4 +1,4 @@
-# clojure_image_mapper
+# S3 Image Converter
 
 A Clojure library designed to grab all images in S3 bucket and apply a transformation to them.
 
@@ -18,25 +18,6 @@ convert: `BUCKETNAME=mybucket lein run --function convert --matcher \.jpg`
 
 convert pngs in directory: `BUCKETNAME=mybucket lein run --function convert --matcher \.png --prefix products`
 
-## Using webp-imageio
-
-The jar and macOS native library is included in the repo, if it is necessary to rebuild it, do the following:
-
-```
-brew install hg gradle cmake
-hg clone https://bitbucket.org/luciad/webp-imageio
-cd webp-imageio
-gradle build -x test
-cp ./build/libs/webp-imageio-<VERSION>-SNAPSHOT.jar <path-to-this-project>/resources/
-# (update `:resource-paths` in project.clj)
-
-mkdir build
-cd build
-cmake ..
-cmake --build .
-cp src/main/c/* <path-to-this-project-repo>/native
-```
-
 ## Running In Docker
 
  * add your aws files to a gitignored directory
@@ -53,7 +34,7 @@ cp src/main/c/* <path-to-this-project-repo>/native
 * `docker login`
 * `docker push danmayer/clojure-image-mapper`
 
-How to make your dockerfile wrap this one with your credentials and do something useful, like say run the converter every 5min in a cron. 
+How to make your `Dockerfile` wrap this one with your credentials and do something useful, like say run the converter every 5min in a cron. 
 
 
 ```
@@ -83,9 +64,29 @@ RUN touch /var/log/cron.log
 CMD crond -l 2 -f
 ```
 
+## Using webp-imageio
+
+The jar and macOS native library is included in the repo, if it is necessary to rebuild it, do the following:
+
+```
+brew install hg gradle cmake
+hg clone https://bitbucket.org/luciad/webp-imageio
+cd webp-imageio
+gradle build -x test
+cp ./build/libs/webp-imageio-<VERSION>-SNAPSHOT.jar <path-to-this-project>/resources/
+# (update `:resource-paths` in project.clj)
+
+mkdir build
+cd build
+cmake ..
+cmake --build .
+cp src/main/c/* <path-to-this-project-repo>/native
+```
+
 ## Todo
 
 * oneoff script to remove all webp or fix public read on existing ones?
+* better way to handle AWS timeouts / throttling
 * time based filter options
 * more efficient S3 filter query (via CLI opposed to in app)
 * don't write files work directly with IO-streams

@@ -45,6 +45,7 @@
   (slurp (expand-home "~/.aws/credentials")))
 
 ;; This function works with new webp API, perhaps fix collage and send a PR
+;; This is extracted from collage and fixed for webp
 (defn save_webp
   "Store a webp image on disk. Hardcoded for lossless quality
   Accepts optional keyword arguments.
@@ -183,10 +184,10 @@
 
 
 (defn convert-images[matcher prefix]
-  (let [ch1 (async/chan 8)
-       ch2 (async/chan 8)
-       ch3 (async/chan 8)
-       ch4 (async/chan 8)
+  (let [ch1 (async/chan 50)
+       ch2 (async/chan 50)
+       ch3 (async/chan 50)
+       ch4 (async/chan 50)
         exitchan (async/chan)
         cred (cred (aws-creds))]
 
@@ -199,19 +200,19 @@
        )
        (async/close! exitchan)
     )
-    (async/pipeline-async 8 ch2 (fn [path c]
+    (async/pipeline-async 50 ch2 (fn [path c]
         (async/>!! c (read-from-s3 cred bucket-name path))
         (async/close! c)
       ) ch1
     )
 
-    (async/pipeline-async 8 ch3 (fn [[image-path local-path] c]
+    (async/pipeline-async 50 ch3 (fn [[image-path local-path] c]
        (async/>!! c (convert-image image-path local-path matcher))
        (async/close! c)
      ) ch2
     )
 
-   (async/pipeline-async 8 ch4 (fn [[image-path local-path] c]
+   (async/pipeline-async 50 ch4 (fn [[image-path local-path] c]
        (async/>!! c (write-to-s3 cred bucket-name image-path local-path matcher))
        (async/close! c)
      ) ch3
