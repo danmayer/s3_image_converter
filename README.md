@@ -96,7 +96,10 @@ cp src/main/c/* <path-to-this-project-repo>/native
 * contribute patch back to collage to make WebP work again
   * https://github.com/karls/collage/blob/master/src/fivetonine/collage/util.clj#L35-L80
   * https://bitbucket.org/luciad/webp-imageio/src/fde3644e6aa610f6a8d97c3d982a7c3926324ecf/src/javase/java/com/luciad/imageio/webp/WebPWriteParam.java?at=default&fileviewer=file-view-default#WebPWriteParam.java-28 
-* keep a count of how many images you converted 
+* keep a count of how many images you converted
+* see about maximizing perf
+  *  increasing the buffers a lot to maybe 500 or 1000. 
+  *  I also misremembered the semantics of “pipeline-async” and I think you should try replacing them all with “pipeline-blocking” instead since all the IO is blocking. 
 
 ## License
 
