@@ -66,7 +66,7 @@ CMD crond -l 2 -f
 
 ## Using webp-imageio
 
-The jar and macOS native library is included in the repo, if it is necessary to rebuild it, do the following:
+The Jar as well as macOS & Linux native library is included in the repo, if it is necessary to rebuild it, do the following:
 
 ```
 brew install hg gradle cmake
