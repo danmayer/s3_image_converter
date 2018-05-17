@@ -137,12 +137,23 @@
   )
 )
 
+;; https://stackoverflow.com/questions/6694530/executing-a-function-with-a-timeout
+(defmacro with-timeout [millis & body]
+  `(let [future# (future ~@body)]
+    (try
+      (.get future# ~millis java.util.concurrent.TimeUnit/MILLISECONDS)
+      (catch java.util.concurrent.TimeoutException x# 
+        (do
+          (future-cancel future#)
+          nil)))))
+
 (defn convert-image [image-path local-path matcher]
   (let [converted-path (string/replace local-path matcher ".webp")]
-    ;;(println converted-path)
+    (println converted-path)
     (try
-      (with-image local-path
-        (save_webp converted-path :quality 0.9))
+      (with-timeout 1000
+        (with-image local-path
+          (save_webp converted-path :quality 0.9)))
     (catch Exception e
         (println (.getMessage e))
         (printf "convert-image: skipped file %s" image-path)
